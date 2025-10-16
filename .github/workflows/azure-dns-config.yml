@@ -1,0 +1,315 @@
+name: Configure Azure Custom Domain
+
+on:
+  # Manual trigger only - DNS configuration is infrequent
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  configure_custom_domain:
+    runs-on: ubuntu-latest
+
+    env:
+      DOMAIN: choredomino.com
+      WWW_DOMAIN: www.choredomino.com
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get Azure Static Web App details
+        id: get_azure_info
+        run: |
+          # Get Static Web App hostname and resource group
+          HOSTNAME=$(az staticwebapp show \
+            --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "defaultHostname" \
+            --output tsv)
+
+          echo "hostname=$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "✓ Azure Static Web App hostname: $HOSTNAME"
+
+      - name: Check existing DNS records with Porkbun
+        id: check_dns
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          AZURE_HOSTNAME: ${{ steps.get_azure_info.outputs.hostname }}
+        run: |
+          # Retrieve existing DNS records for www subdomain
+          RESPONSE=$(curl -s -X POST https://api.porkbun.com/api/json/v3/dns/retrieveByNameType/${{ env.DOMAIN }}/CNAME/www \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+              \"apikey\": \"$PORKBUN_API_KEY\"
+            }")
+
+          # Extract and log status only (don't expose full response)
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          RECORD_COUNT=$(echo "$RESPONSE" | jq -r '.records | length // 0')
+          echo "DNS lookup status: $STATUS (found $RECORD_COUNT records)"
+
+          # Extract record ID and current CNAME content if it exists
+          RECORD_ID=$(echo "$RESPONSE" | jq -r '.records[0].id // empty')
+          CURRENT_CNAME=$(echo "$RESPONSE" | jq -r '.records[0].content // empty' | sed 's/\.$//')
+
+          echo "record_id=$RECORD_ID" >> $GITHUB_OUTPUT
+          echo "current_cname=$CURRENT_CNAME" >> $GITHUB_OUTPUT
+
+          # Check if DNS already points to correct Azure hostname
+          if [ "$CURRENT_CNAME" = "$AZURE_HOSTNAME" ]; then
+            echo "dns_matches=true" >> $GITHUB_OUTPUT
+            echo "✓ DNS already correctly configured: $CURRENT_CNAME"
+          else
+            echo "dns_matches=false" >> $GITHUB_OUTPUT
+            echo "DNS needs update: current=$CURRENT_CNAME, expected=$AZURE_HOSTNAME"
+          fi
+
+      - name: Check Azure custom domain status
+        id: check_azure_domain
+        if: steps.check_dns.outputs.dns_matches == 'true'
+        run: |
+          # Check if custom domain is already configured in Azure
+          DOMAIN_STATUS=$(az staticwebapp hostname show \
+            --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --hostname ${{ env.WWW_DOMAIN }} \
+            --query "status" \
+            --output tsv 2>/dev/null || echo "NOT_FOUND")
+
+          echo "domain_status=$DOMAIN_STATUS" >> $GITHUB_OUTPUT
+
+          if [ "$DOMAIN_STATUS" = "Ready" ]; then
+            echo "✓ Azure custom domain already configured and ready"
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+          else
+            echo "Azure custom domain status: $DOMAIN_STATUS"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip configuration (already up to date)
+        if: steps.check_dns.outputs.dns_matches == 'true' && steps.check_azure_domain.outputs.needs_update == 'false'
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✓ DNS and Azure custom domain are already correctly configured"
+          echo "✓ Skipping DNS updates to save time and API calls"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Delete existing DNS CNAME record (if exists)
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          RECORD_ID: ${{ steps.check_dns.outputs.record_id }}
+        run: |
+          if [ -n "$RECORD_ID" ]; then
+            echo "Deleting existing CNAME record (ID: $RECORD_ID)..."
+            DELETE_RESPONSE=$(curl -s -X POST https://api.porkbun.com/api/json/v3/dns/delete/${{ env.DOMAIN }}/$RECORD_ID \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+                \"apikey\": \"$PORKBUN_API_KEY\"
+              }")
+            
+            DELETE_STATUS=$(echo "$DELETE_RESPONSE" | jq -r '.status')
+            if [ "$DELETE_STATUS" != "SUCCESS" ]; then
+              DELETE_MESSAGE=$(echo "$DELETE_RESPONSE" | jq -r '.message // "Unknown error"')
+              echo "Warning: Failed to delete existing record. Status: $DELETE_STATUS"
+              echo "Message: $DELETE_MESSAGE"
+              echo "Continuing with creation attempt..."
+            else
+              echo "✓ Existing CNAME record deleted successfully"
+            fi
+          else
+            echo "No existing CNAME record found, will create new one"
+          fi
+
+      - name: Create DNS CNAME record with Porkbun
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          AZURE_HOSTNAME: ${{ steps.get_azure_info.outputs.hostname }}
+        run: |
+          # Ensure CNAME target ends with a dot (per DNS standards)
+          CNAME_TARGET="${AZURE_HOSTNAME}."
+
+          echo "Creating CNAME record: www.${{ env.DOMAIN }} -> $CNAME_TARGET"
+          RESPONSE=$(curl -s -X POST https://api.porkbun.com/api/json/v3/dns/create/${{ env.DOMAIN }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+              \"apikey\": \"$PORKBUN_API_KEY\",
+              \"name\": \"www\",
+              \"type\": \"CNAME\",
+              \"content\": \"$CNAME_TARGET\",
+              \"ttl\": \"600\"
+            }")
+
+          # Check if successful (log status and message but not full response)
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          if [ "$STATUS" != "SUCCESS" ]; then
+            MESSAGE=$(echo "$RESPONSE" | jq -r '.message // "Unknown error"')
+            echo "Error: Failed to create DNS record. Status: $STATUS"
+            echo "Message: $MESSAGE"
+            exit 1
+          fi
+
+          echo "✓ DNS CNAME record configured: ${{ env.WWW_DOMAIN }} -> $CNAME_TARGET"
+
+      - name: Configure apex domain URL forwarding
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+        run: |
+          # Check if URL forwarding already exists for apex domain
+          echo "Checking existing URL forwarding..."
+          FORWARDS=$(curl -s -X POST https://api.porkbun.com/api/json/v3/domain/getUrlForwarding/${{ env.DOMAIN }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+              \"apikey\": \"$PORKBUN_API_KEY\"
+            }")
+
+          # Log status only, not full response
+          FORWARD_STATUS=$(echo "$FORWARDS" | jq -r '.status')
+          FORWARD_COUNT=$(echo "$FORWARDS" | jq -r '.forwards | length // 0')
+          echo "URL forwarding status: $FORWARD_STATUS (found $FORWARD_COUNT forwards)"
+
+          # Check if apex forward exists (subdomain is empty for apex)
+          FORWARD_ID=$(echo "$FORWARDS" | jq -r '.forwards[] | select(.subdomain == "") | .id // empty')
+
+          if [ -n "$FORWARD_ID" ]; then
+            # Delete existing forward so we can recreate it with correct settings
+            echo "Deleting existing apex forward (ID: $FORWARD_ID)..."
+            DELETE_RESPONSE=$(curl -s -X POST https://api.porkbun.com/api/json/v3/domain/deleteUrlForward/${{ env.DOMAIN }}/$FORWARD_ID \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+                \"apikey\": \"$PORKBUN_API_KEY\"
+              }")
+            
+            DELETE_STATUS=$(echo "$DELETE_RESPONSE" | jq -r '.status')
+            if [ "$DELETE_STATUS" != "SUCCESS" ]; then
+              echo "Warning: Failed to delete existing forward (status: $DELETE_STATUS)"
+              echo "Continuing with creation attempt..."
+            else
+              echo "✓ Existing forward deleted successfully"
+            fi
+          fi
+
+          # Create URL forward from apex to www (301 permanent redirect)
+          echo "Creating URL forward: ${{ env.DOMAIN }} -> https://${{ env.WWW_DOMAIN }}"
+          RESPONSE=$(curl -s -X POST https://api.porkbun.com/api/json/v3/domain/addUrlForward/${{ env.DOMAIN }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"secretapikey\": \"$PORKBUN_SECRET_KEY\",
+              \"apikey\": \"$PORKBUN_API_KEY\",
+              \"subdomain\": \"\",
+              \"location\": \"https://${{ env.WWW_DOMAIN }}\",
+              \"type\": \"permanent\",
+              \"includePath\": \"yes\",
+              \"wildcard\": \"no\"
+            }")
+
+          # Check if successful (log status and message but not full response)
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          if [ "$STATUS" != "SUCCESS" ]; then
+            MESSAGE=$(echo "$RESPONSE" | jq -r '.message // "Unknown error"')
+            echo "Error: Failed to configure URL forwarding. Status: $STATUS"
+            echo "Message: $MESSAGE"
+            exit 1
+          fi
+
+          echo "✓ URL forwarding configured: ${{ env.DOMAIN }} -> https://${{ env.WWW_DOMAIN }} (301 permanent)"
+          echo "  - includePath: yes (preserves URL paths)"
+          echo "  - wildcard: no (only apex domain)"
+
+      - name: Wait for DNS propagation
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        run: |
+          echo "Waiting for DNS propagation..."
+          echo "This allows the CNAME record to propagate before Azure validates it."
+
+          # Verify DNS propagation with retries
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking DNS..."
+            
+            # Query DNS for the CNAME record
+            if nslookup ${{ env.WWW_DOMAIN }} | grep -q "${{ steps.get_azure_info.outputs.hostname }}"; then
+              echo "✓ DNS CNAME propagated successfully!"
+              echo "  ${{ env.WWW_DOMAIN }} → ${{ steps.get_azure_info.outputs.hostname }}"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "⚠ DNS not fully propagated yet, but continuing..."
+              echo "Azure will retry validation automatically."
+              break
+            fi
+            
+            echo "DNS not propagated yet, waiting 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+      - name: Add custom domain to Azure Static Web App
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        run: |
+          # Add custom domain (this will trigger Azure's validation process)
+          az staticwebapp hostname set \
+            --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --hostname ${{ env.WWW_DOMAIN }}
+
+          echo "✓ Custom domain added to Azure Static Web App"
+
+      - name: Wait and verify domain validation
+        if: steps.check_dns.outputs.dns_matches != 'true' || steps.check_azure_domain.outputs.needs_update == 'true'
+        run: |
+          echo "Waiting for DNS propagation and domain validation..."
+          echo "This may take a few minutes..."
+
+          # Wait for DNS to propagate
+          sleep 60
+
+          # Check validation status with retries
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Checking validation status (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+            
+            STATUS=$(az staticwebapp hostname show \
+              --name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --hostname ${{ env.WWW_DOMAIN }} \
+              --query "status" \
+              --output tsv || echo "PENDING")
+            
+            echo "Domain status: $STATUS"
+            
+            if [ "$STATUS" = "Ready" ]; then
+              echo "✓ Domain validation successful!"
+              exit 0
+            fi
+            
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Waiting 15 seconds before next check..."
+              sleep 15
+            fi
+          done
+
+          echo "⚠ Domain validation still in progress. Check Azure portal for final status."
+          echo "Note: Domain validation can take up to 48 hours in some cases."
