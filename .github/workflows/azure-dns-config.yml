@@ -313,3 +313,25 @@ jobs:
 
           echo "⚠ Domain validation still in progress. Check Azure portal for final status."
           echo "Note: Domain validation can take up to 48 hours in some cases."
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Custom Domain Configuration Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Static Web App: ${{ secrets.AZURE_STATIC_WEB_APP_NAME }}"
+          echo "Resource Group: ${{ secrets.AZURE_RESOURCE_GROUP }}"
+          echo "Azure Hostname: ${{ steps.get_azure_info.outputs.hostname }}"
+          echo ""
+          echo "DNS Configuration:"
+          echo "  • www.${{ env.DOMAIN }} → ${{ steps.get_azure_info.outputs.hostname }} (CNAME)"
+          echo "  • ${{ env.DOMAIN }} → https://${{ env.WWW_DOMAIN }} (URL Forward 301)"
+          echo ""
+          echo "Custom Domain: ${{ env.WWW_DOMAIN }}"
+          echo ""
+          echo "Next Steps:"
+          echo "  1. Wait for DNS propagation (up to 48 hours)"
+          echo "  2. Azure will automatically provision SSL certificate"
+          echo "  3. Check status in Azure Portal → Static Web Apps → Custom domains"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
