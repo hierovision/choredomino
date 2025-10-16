@@ -126,9 +126,13 @@ Chore Domino is designed to deploy seamlessly to Azure Static Web Apps:
    - Create new Static Web App
    - Connect to your GitHub repo
    - Build settings:
-     - App location: `/`
-     - Output location: `dist`
-     - Build command: `yarn build`
+     - App location: `dist`
+     - Output location: `` (empty)
+     - Build command: Handled by GitHub Actions
+   
+   **Current Deployment:**
+   - URL: https://happy-hill-05779860f.2.azurestaticapps.net
+   - GitHub Actions workflow handles build and deploy
 
 2. **Environment Variables**
    
