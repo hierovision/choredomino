@@ -15,8 +15,8 @@ export interface HouseholdDocument {
     currency: string
     pointsPerChore: number
   }
-  _modified: number // Required for Supabase replication
-  _deleted?: boolean // Soft delete flag for Supabase sync
+  modified: number // Syncs to modified in Supabase
+  isDeleted?: boolean // Syncs to deleted in Supabase
 }
 
 export const householdSchema: RxJsonSchema<HouseholdDocument> = {
@@ -64,18 +64,18 @@ export const householdSchema: RxJsonSchema<HouseholdDocument> = {
       },
       required: ['timezone', 'currency', 'pointsPerChore']
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'name', 'createdAt', 'updatedAt', 'createdBy', 'settings', '_modified'],
-  indexes: ['updatedAt', 'createdBy', '_modified']
+  required: ['id', 'name', 'createdAt', 'updatedAt', 'createdBy', 'settings', 'modified'],
+  indexes: ['updatedAt', 'createdBy', 'modified']
 }
 
 /**
@@ -92,8 +92,8 @@ export interface UserDocument {
   points: number
   createdAt: number
   updatedAt: number
-  _modified: number
-  _deleted?: boolean
+  modified: number
+  isDeleted?: boolean
 }
 
 export const userSchema: RxJsonSchema<UserDocument> = {
@@ -124,7 +124,8 @@ export const userSchema: RxJsonSchema<UserDocument> = {
     },
     role: {
       type: 'string',
-      enum: ['admin', 'member', 'child']
+      enum: ['admin', 'member', 'child'],
+      maxLength: 10
     },
     points: {
       type: 'number',
@@ -143,18 +144,18 @@ export const userSchema: RxJsonSchema<UserDocument> = {
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'householdId', 'name', 'role', 'points', 'createdAt', 'updatedAt', '_modified'],
-  indexes: ['householdId', 'updatedAt', '_modified', ['householdId', 'role']]
+  required: ['id', 'householdId', 'name', 'role', 'points', 'createdAt', 'updatedAt', 'modified'],
+  indexes: ['householdId', 'updatedAt', 'modified', ['householdId', 'role']]
 }
 
 /**
@@ -175,8 +176,8 @@ export interface ChoreDocument {
   createdAt: number
   updatedAt: number
   createdBy: string
-  _modified: number
-  _deleted?: boolean
+  modified: number
+  isDeleted?: boolean
 }
 
 export const choreSchema: RxJsonSchema<ChoreDocument> = {
@@ -246,18 +247,18 @@ export const choreSchema: RxJsonSchema<ChoreDocument> = {
       maxLength: 100,
       ref: 'users'
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'householdId', 'name', 'points', 'frequency', 'isActive', 'createdAt', 'updatedAt', 'createdBy', '_modified'],
-  indexes: ['householdId', 'updatedAt', 'assignedTo', 'isActive', '_modified', ['householdId', 'isActive'], ['householdId', 'assignedTo']]
+  required: ['id', 'householdId', 'name', 'points', 'frequency', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'modified'],
+  indexes: ['householdId', 'updatedAt', 'assignedTo', 'isActive', 'modified', ['householdId', 'isActive'], ['householdId', 'assignedTo']]
 }
 
 /**
@@ -279,8 +280,8 @@ export interface CompletionDocument {
   pointsAwarded: number
   createdAt: number
   updatedAt: number
-  _modified: number
-  _deleted?: boolean
+  modified: number
+  isDeleted?: boolean
 }
 
 export const completionSchema: RxJsonSchema<CompletionDocument> = {
@@ -315,7 +316,8 @@ export const completionSchema: RxJsonSchema<CompletionDocument> = {
     },
     status: {
       type: 'string',
-      enum: ['pending', 'approved', 'rejected']
+      enum: ['pending', 'approved', 'rejected'],
+      maxLength: 20
     },
     approvedBy: {
       type: 'string',
@@ -356,18 +358,18 @@ export const completionSchema: RxJsonSchema<CompletionDocument> = {
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'choreId', 'householdId', 'completedBy', 'completedAt', 'status', 'pointsAwarded', 'createdAt', 'updatedAt', '_modified'],
-  indexes: ['householdId', 'choreId', 'completedBy', 'status', 'updatedAt', '_modified', ['householdId', 'status'], ['choreId', 'completedAt']]
+  required: ['id', 'choreId', 'householdId', 'completedBy', 'completedAt', 'status', 'pointsAwarded', 'createdAt', 'updatedAt', 'modified'],
+  indexes: ['householdId', 'choreId', 'completedBy', 'status', 'updatedAt', 'modified', ['householdId', 'status'], ['choreId', 'completedAt']]
 }
 
 /**
@@ -387,8 +389,8 @@ export interface RewardDocument {
   createdAt: number
   updatedAt: number
   createdBy: string
-  _modified: number
-  _deleted?: boolean
+  modified: number
+  isDeleted?: boolean
 }
 
 export const rewardSchema: RxJsonSchema<RewardDocument> = {
@@ -450,18 +452,18 @@ export const rewardSchema: RxJsonSchema<RewardDocument> = {
       maxLength: 100,
       ref: 'users'
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'householdId', 'name', 'pointsCost', 'isActive', 'isShared', 'createdAt', 'updatedAt', 'createdBy', '_modified'],
-  indexes: ['householdId', 'updatedAt', 'isActive', '_modified', ['householdId', 'isActive']]
+  required: ['id', 'householdId', 'name', 'pointsCost', 'isActive', 'isShared', 'createdAt', 'updatedAt', 'createdBy', 'modified'],
+  indexes: ['householdId', 'updatedAt', 'isActive', 'modified', ['householdId', 'isActive']]
 }
 
 /**
@@ -481,8 +483,8 @@ export interface RewardRedemptionDocument {
   notes?: string
   createdAt: number
   updatedAt: number
-  _modified: number
-  _deleted?: boolean
+  modified: number
+  isDeleted?: boolean
 }
 
 export const rewardRedemptionSchema: RxJsonSchema<RewardRedemptionDocument> = {
@@ -517,7 +519,8 @@ export const rewardRedemptionSchema: RxJsonSchema<RewardRedemptionDocument> = {
     },
     status: {
       type: 'string',
-      enum: ['pending', 'fulfilled', 'cancelled']
+      enum: ['pending', 'fulfilled', 'cancelled'],
+      maxLength: 20
     },
     fulfilledBy: {
       type: 'string',
@@ -550,16 +553,16 @@ export const rewardRedemptionSchema: RxJsonSchema<RewardRedemptionDocument> = {
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _modified: {
+    modified: {
       type: 'number',
       minimum: 0,
       maximum: 9999999999999,
       multipleOf: 1
     },
-    _deleted: {
+    isDeleted: {
       type: 'boolean'
     }
   },
-  required: ['id', 'rewardId', 'householdId', 'redeemedBy', 'redeemedAt', 'status', 'pointsSpent', 'createdAt', 'updatedAt', '_modified'],
-  indexes: ['householdId', 'redeemedBy', 'status', 'updatedAt', '_modified', ['householdId', 'status']]
+  required: ['id', 'rewardId', 'householdId', 'redeemedBy', 'redeemedAt', 'status', 'pointsSpent', 'createdAt', 'updatedAt', 'modified'],
+  indexes: ['householdId', 'redeemedBy', 'status', 'updatedAt', 'modified', ['householdId', 'status']]
 }

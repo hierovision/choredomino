@@ -1,11 +1,13 @@
 /**
  * RxDB Database Initialization
  * Sets up the local-first database with Supabase sync
+ * NOTE: Using memory storage for now due to Dexie/Vite compatibility issues
+ * For production, consider: https://rxdb.info/rx-storage-indexeddb.html (premium)
+ * Validation disabled due to Ajv/Vite ESM compatibility issues
  */
 import { createRxDatabase, addRxPlugin } from 'rxdb/plugins/core'
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode'
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie'
-import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv'
+import { getRxStorageMemory } from 'rxdb/plugins/storage-memory'
 import type { RxDatabase } from 'rxdb'
 
 import {
@@ -47,12 +49,12 @@ export async function initDatabase(): Promise<ChoreDb> {
   dbPromise = (async () => {
     console.log('[RxDB] Creating database...')
 
-    // Create the database with LocalStorage (for browser compatibility)
+    // Create the database with Memory storage (non-persistent for now)
+    // TODO: Switch to premium IndexedDB storage for production
+    // NOTE: Schema validation disabled due to Ajv/Vite ESM issues
     const db = await createRxDatabase<ChoreDb>({
       name: 'choredomino',
-      storage: wrappedValidateAjvStorage({
-        storage: getRxStorageDexie()
-      }),
+      storage: getRxStorageMemory(),
       multiInstance: true, // Support multiple tabs
       eventReduce: true, // Optimize event handling
       ignoreDuplicate: true
