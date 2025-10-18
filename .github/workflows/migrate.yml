@@ -37,8 +37,10 @@ jobs:
 
       - name: Run migrations on DEV
         run: |
-          # Note: DEV_SUPABASE_DB_URL must use direct connection (port 5432), not pooler (port 6543)
-          # Format: postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+          # Note: DEV_SUPABASE_DB_URL must use session mode (port 5432), not transaction mode (port 6543)
+          # Transaction mode doesn't support prepared statements needed for migrations
+          # Format: postgres://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+          # Get from Dashboard → Connect → "Session mode"
           supabase db push \
             --db-url "${{ secrets.DEV_SUPABASE_DB_URL }}"
         
@@ -72,8 +74,10 @@ jobs:
 
       - name: Run migrations on PROD
         run: |
-          # Note: PROD_SUPABASE_DB_URL must use direct connection (port 5432), not pooler (port 6543)
-          # Format: postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+          # Note: PROD_SUPABASE_DB_URL must use session mode (port 5432), not transaction mode (port 6543)
+          # Transaction mode doesn't support prepared statements needed for migrations
+          # Format: postgres://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+          # Get from Dashboard → Connect → "Session mode"
           supabase db push \
             --db-url "${{ secrets.PROD_SUPABASE_DB_URL }}"
         

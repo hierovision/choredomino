@@ -258,11 +258,12 @@ Contributions are welcome! This project is built to serve families regardless of
 
 Required secrets for the migration workflow:
 
-- `DEV_SUPABASE_DB_URL`: Direct connection string for DEV (port **5432**, not 6543)
-  - Format: `postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres`
-- `PROD_SUPABASE_DB_URL`: Direct connection string for PROD (port **5432**, not 6543)
+- `DEV_SUPABASE_DB_URL`: Session mode connection string for DEV
+  - Format: `postgres://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres`
+  - Get from Dashboard → Connect → "Session mode" (NOT "Transaction mode")
+- `PROD_SUPABASE_DB_URL`: Session mode connection string for PROD
 
-**Important**: Must use direct connection (port 5432), not transaction pooler (port 6543), to avoid "prepared statement already exists" errors during migrations.
+**Important**: Must use **Supavisor session mode** (port 5432) or direct connection, NOT transaction mode (port 6543), as transaction mode doesn't support prepared statements needed for migrations.
 
 ### Code Style
 
