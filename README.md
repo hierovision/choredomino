@@ -254,6 +254,16 @@ Contributions are welcome! This project is built to serve families regardless of
 4. Test thoroughly (especially offline scenarios)
 5. Submit a PR
 
+### GitHub Actions Secrets (for Automated Migrations)
+
+Required secrets for the migration workflow:
+
+- `DEV_SUPABASE_DB_URL`: Direct connection string for DEV (port **5432**, not 6543)
+  - Format: `postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres`
+- `PROD_SUPABASE_DB_URL`: Direct connection string for PROD (port **5432**, not 6543)
+
+**Important**: Must use direct connection (port 5432), not transaction pooler (port 6543), to avoid "prepared statement already exists" errors during migrations.
+
 ### Code Style
 
 - TypeScript strict mode

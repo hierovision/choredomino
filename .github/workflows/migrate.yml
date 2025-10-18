@@ -37,6 +37,8 @@ jobs:
 
       - name: Run migrations on DEV
         run: |
+          # Note: DEV_SUPABASE_DB_URL must use direct connection (port 5432), not pooler (port 6543)
+          # Format: postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
           supabase db push \
             --db-url "${{ secrets.DEV_SUPABASE_DB_URL }}"
         
@@ -70,6 +72,8 @@ jobs:
 
       - name: Run migrations on PROD
         run: |
+          # Note: PROD_SUPABASE_DB_URL must use direct connection (port 5432), not pooler (port 6543)
+          # Format: postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
           supabase db push \
             --db-url "${{ secrets.PROD_SUPABASE_DB_URL }}"
         
