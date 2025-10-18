@@ -29,7 +29,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Primary isolation boundary for multi-tenancy
 -- Each household is independent
 
-CREATE TABLE public.households (
+CREATE TABLE IF NOT EXISTS public.households (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(200) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -52,10 +52,10 @@ CREATE TABLE public.households (
 );
 
 -- Indexes
-CREATE INDEX idx_households_created_by ON public.households(created_by);
-CREATE INDEX idx_households_updated_at ON public.households(updated_at);
-CREATE INDEX idx_households_modified ON public.households(_modified);
-CREATE INDEX idx_households_not_deleted ON public.households(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_households_created_by ON public.households(created_by);
+CREATE INDEX IF NOT EXISTS idx_households_updated_at ON public.households(updated_at);
+CREATE INDEX IF NOT EXISTS idx_households_modified ON public.households(_modified);
+CREATE INDEX IF NOT EXISTS idx_households_not_deleted ON public.households(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -67,6 +67,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS households_updated_at ON public.households;
 CREATE TRIGGER households_updated_at
   BEFORE UPDATE ON public.households
   FOR EACH ROW
@@ -78,7 +79,7 @@ CREATE TRIGGER households_updated_at
 -- Junction table linking auth.users to households
 -- Users can belong to multiple households
 
-CREATE TABLE public.household_members (
+CREATE TABLE IF NOT EXISTS public.household_members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   household_id UUID NOT NULL REFERENCES public.households(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -104,12 +105,13 @@ CREATE TABLE public.household_members (
 );
 
 -- Indexes
-CREATE INDEX idx_household_members_household ON public.household_members(household_id);
-CREATE INDEX idx_household_members_user ON public.household_members(user_id);
-CREATE INDEX idx_household_members_modified ON public.household_members(_modified);
-CREATE INDEX idx_household_members_not_deleted ON public.household_members(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_household_members_household ON public.household_members(household_id);
+CREATE INDEX IF NOT EXISTS idx_household_members_user ON public.household_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_household_members_modified ON public.household_members(_modified);
+CREATE INDEX IF NOT EXISTS idx_household_members_not_deleted ON public.household_members(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS household_members_updated_at ON public.household_members;
 CREATE TRIGGER household_members_updated_at
   BEFORE UPDATE ON public.household_members
   FOR EACH ROW
@@ -121,7 +123,7 @@ CREATE TRIGGER household_members_updated_at
 -- Extends auth.users with app-specific data
 -- One-to-one with auth.users
 
-CREATE TABLE public.user_profiles (
+CREATE TABLE IF NOT EXISTS public.user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   
   -- Profile data
@@ -142,10 +144,11 @@ CREATE TABLE public.user_profiles (
 );
 
 -- Indexes
-CREATE INDEX idx_user_profiles_current_household ON public.user_profiles(current_household_id);
-CREATE INDEX idx_user_profiles_modified ON public.user_profiles(_modified);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_current_household ON public.user_profiles(current_household_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_modified ON public.user_profiles(_modified);
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS user_profiles_updated_at ON public.user_profiles;
 CREATE TRIGGER user_profiles_updated_at
   BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW
@@ -165,6 +168,7 @@ ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Users can see households they are members of
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can view their households"
   ON public.households
   FOR SELECT
@@ -179,6 +183,7 @@ CREATE POLICY "Users can view their households"
   );
 
 -- Users can create new households (automatically become admin)
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can create households"
   ON public.households
   FOR INSERT
@@ -186,6 +191,7 @@ CREATE POLICY "Users can create households"
   WITH CHECK (created_by = (SELECT auth.uid()));
 
 -- Only household admins can update households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Household admins can update households"
   ON public.households
   FOR UPDATE
@@ -201,6 +207,7 @@ CREATE POLICY "Household admins can update households"
   );
 
 -- Only household admins can soft delete households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Household admins can delete households"
   ON public.households
   FOR UPDATE
@@ -220,6 +227,7 @@ CREATE POLICY "Household admins can delete households"
 -- ============================================
 
 -- Members can see other members in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can view household members"
   ON public.household_members
   FOR SELECT
@@ -234,6 +242,7 @@ CREATE POLICY "Users can view household members"
   );
 
 -- Admins can add members to their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Admins can add household members"
   ON public.household_members
   FOR INSERT
@@ -249,6 +258,7 @@ CREATE POLICY "Admins can add household members"
   );
 
 -- Users can update their own profile in a household
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can update their own household profile"
   ON public.household_members
   FOR UPDATE
@@ -256,6 +266,7 @@ CREATE POLICY "Users can update their own household profile"
   USING (user_id = (SELECT auth.uid()));
 
 -- Admins can update any member in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Admins can update household members"
   ON public.household_members
   FOR UPDATE
@@ -275,6 +286,7 @@ CREATE POLICY "Admins can update household members"
 -- ============================================
 
 -- Users can view their own profile
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can view own profile"
   ON public.user_profiles
   FOR SELECT
@@ -282,6 +294,7 @@ CREATE POLICY "Users can view own profile"
   USING (id = (SELECT auth.uid()));
 
 -- Users can update their own profile
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can update own profile"
   ON public.user_profiles
   FOR UPDATE
@@ -289,6 +302,7 @@ CREATE POLICY "Users can update own profile"
   USING (id = (SELECT auth.uid()));
 
 -- Users can insert their own profile
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Users can insert own profile"
   ON public.user_profiles
   FOR INSERT
@@ -316,6 +330,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Trigger to create profile on user signup
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
+  AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
@@ -331,6 +346,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS household_members_ensure_creator_admin ON public.household_members;
 CREATE TRIGGER household_members_ensure_creator_admin
   BEFORE INSERT ON public.household_members
   FOR EACH ROW

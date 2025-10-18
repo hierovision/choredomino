@@ -41,12 +41,13 @@ CREATE TABLE public.rewards (
 );
 
 -- Indexes
-CREATE INDEX idx_rewards_household ON public.rewards(household_id);
-CREATE INDEX idx_rewards_active ON public.rewards(is_active) WHERE is_active = TRUE;
-CREATE INDEX idx_rewards_modified ON public.rewards(_modified);
-CREATE INDEX idx_rewards_not_deleted ON public.rewards(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_rewards_household ON public.rewards(household_id);
+CREATE INDEX IF NOT EXISTS idx_rewards_active ON public.rewards(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_rewards_modified ON public.rewards(_modified);
+CREATE INDEX IF NOT EXISTS idx_rewards_not_deleted ON public.rewards(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS rewards_updated_at ON public.rewards;
 CREATE TRIGGER rewards_updated_at
   BEFORE UPDATE ON public.rewards
   FOR EACH ROW
@@ -87,15 +88,16 @@ CREATE TABLE public.reward_redemptions (
 );
 
 -- Indexes
-CREATE INDEX idx_redemptions_reward ON public.reward_redemptions(reward_id);
-CREATE INDEX idx_redemptions_household ON public.reward_redemptions(household_id);
-CREATE INDEX idx_redemptions_redeemed_by ON public.reward_redemptions(redeemed_by);
-CREATE INDEX idx_redemptions_status ON public.reward_redemptions(status);
-CREATE INDEX idx_redemptions_redeemed_at ON public.reward_redemptions(redeemed_at);
-CREATE INDEX idx_redemptions_modified ON public.reward_redemptions(_modified);
-CREATE INDEX idx_redemptions_not_deleted ON public.reward_redemptions(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_redemptions_reward ON public.reward_redemptions(reward_id);
+CREATE INDEX IF NOT EXISTS idx_redemptions_household ON public.reward_redemptions(household_id);
+CREATE INDEX IF NOT EXISTS idx_redemptions_redeemed_by ON public.reward_redemptions(redeemed_by);
+CREATE INDEX IF NOT EXISTS idx_redemptions_status ON public.reward_redemptions(status);
+CREATE INDEX IF NOT EXISTS idx_redemptions_redeemed_at ON public.reward_redemptions(redeemed_at);
+CREATE INDEX IF NOT EXISTS idx_redemptions_modified ON public.reward_redemptions(_modified);
+CREATE INDEX IF NOT EXISTS idx_redemptions_not_deleted ON public.reward_redemptions(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS redemptions_updated_at ON public.reward_redemptions;
 CREATE TRIGGER redemptions_updated_at
   BEFORE UPDATE ON public.reward_redemptions
   FOR EACH ROW
@@ -113,6 +115,7 @@ ALTER TABLE public.reward_redemptions ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Members can view rewards in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can view household rewards"
   ON public.rewards
   FOR SELECT
@@ -126,6 +129,7 @@ CREATE POLICY "Members can view household rewards"
   );
 
 -- Admins can create rewards
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Admins can create rewards"
   ON public.rewards
   FOR INSERT
@@ -141,6 +145,7 @@ CREATE POLICY "Admins can create rewards"
   );
 
 -- Admins can update rewards
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Admins can update rewards"
   ON public.rewards
   FOR UPDATE
@@ -159,6 +164,7 @@ CREATE POLICY "Admins can update rewards"
 -- ============================================
 
 -- Members can view redemptions in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can view redemptions"
   ON public.reward_redemptions
   FOR SELECT
@@ -172,6 +178,7 @@ CREATE POLICY "Members can view redemptions"
   );
 
 -- Members can redeem rewards
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can redeem rewards"
   ON public.reward_redemptions
   FOR INSERT
@@ -187,6 +194,7 @@ CREATE POLICY "Members can redeem rewards"
 
 -- Admins can update redemptions (for fulfillment)
 -- Users can cancel their own pending redemptions
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can update redemptions"
   ON public.reward_redemptions
   FOR UPDATE
@@ -271,6 +279,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS validate_redemption ON public.reward_redemptions;
 CREATE TRIGGER validate_redemption
   BEFORE INSERT ON public.reward_redemptions
   FOR EACH ROW
@@ -299,6 +308,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS refund_on_cancellation ON public.reward_redemptions;
 CREATE TRIGGER refund_on_cancellation
   BEFORE UPDATE ON public.reward_redemptions
   FOR EACH ROW
@@ -318,6 +328,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS mark_fulfilled ON public.reward_redemptions;
 CREATE TRIGGER mark_fulfilled
   BEFORE UPDATE ON public.reward_redemptions
   FOR EACH ROW

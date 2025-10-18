@@ -44,13 +44,14 @@ CREATE TABLE public.chores (
 );
 
 -- Indexes
-CREATE INDEX idx_chores_household ON public.chores(household_id);
-CREATE INDEX idx_chores_assigned_to ON public.chores(assigned_to);
-CREATE INDEX idx_chores_due_date ON public.chores(due_date) WHERE is_active = TRUE;
-CREATE INDEX idx_chores_modified ON public.chores(_modified);
-CREATE INDEX idx_chores_not_deleted ON public.chores(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_chores_household ON public.chores(household_id);
+CREATE INDEX IF NOT EXISTS idx_chores_assigned_to ON public.chores(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_chores_due_date ON public.chores(due_date) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_chores_modified ON public.chores(_modified);
+CREATE INDEX IF NOT EXISTS idx_chores_not_deleted ON public.chores(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS chores_updated_at ON public.chores;
 CREATE TRIGGER chores_updated_at
   BEFORE UPDATE ON public.chores
   FOR EACH ROW
@@ -95,15 +96,16 @@ CREATE TABLE public.chore_completions (
 );
 
 -- Indexes
-CREATE INDEX idx_completions_chore ON public.chore_completions(chore_id);
-CREATE INDEX idx_completions_household ON public.chore_completions(household_id);
-CREATE INDEX idx_completions_completed_by ON public.chore_completions(completed_by);
-CREATE INDEX idx_completions_status ON public.chore_completions(status);
-CREATE INDEX idx_completions_completed_at ON public.chore_completions(completed_at);
-CREATE INDEX idx_completions_modified ON public.chore_completions(_modified);
-CREATE INDEX idx_completions_not_deleted ON public.chore_completions(_deleted) WHERE _deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_completions_chore ON public.chore_completions(chore_id);
+CREATE INDEX IF NOT EXISTS idx_completions_household ON public.chore_completions(household_id);
+CREATE INDEX IF NOT EXISTS idx_completions_completed_by ON public.chore_completions(completed_by);
+CREATE INDEX IF NOT EXISTS idx_completions_status ON public.chore_completions(status);
+CREATE INDEX IF NOT EXISTS idx_completions_completed_at ON public.chore_completions(completed_at);
+CREATE INDEX IF NOT EXISTS idx_completions_modified ON public.chore_completions(_modified);
+CREATE INDEX IF NOT EXISTS idx_completions_not_deleted ON public.chore_completions(_deleted) WHERE _deleted = FALSE;
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS completions_updated_at ON public.chore_completions;
 CREATE TRIGGER completions_updated_at
   BEFORE UPDATE ON public.chore_completions
   FOR EACH ROW
@@ -121,6 +123,7 @@ ALTER TABLE public.chore_completions ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Members can view chores in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can view household chores"
   ON public.chores
   FOR SELECT
@@ -134,6 +137,7 @@ CREATE POLICY "Members can view household chores"
   );
 
 -- Members can create chores in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can create chores"
   ON public.chores
   FOR INSERT
@@ -148,6 +152,7 @@ CREATE POLICY "Members can create chores"
   );
 
 -- Members can update chores in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can update chores"
   ON public.chores
   FOR UPDATE
@@ -165,6 +170,7 @@ CREATE POLICY "Members can update chores"
 -- ============================================
 
 -- Members can view completions in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can view completions"
   ON public.chore_completions
   FOR SELECT
@@ -178,6 +184,7 @@ CREATE POLICY "Members can view completions"
   );
 
 -- Members can create completions for chores in their households
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can create completions"
   ON public.chore_completions
   FOR INSERT
@@ -193,6 +200,7 @@ CREATE POLICY "Members can create completions"
 
 -- Members can update their own completions if pending
 -- Admins can update any completion (for approval)
+DROP POLICY IF EXISTS "" ON ;
 CREATE POLICY "Members can update completions"
   ON public.chore_completions
   FOR UPDATE
@@ -248,6 +256,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS completion_approval_update_points ON public.chore_completions;
 CREATE TRIGGER completion_approval_update_points
   BEFORE UPDATE ON public.chore_completions
   FOR EACH ROW
