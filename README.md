@@ -166,12 +166,23 @@ Chore Domino is designed to deploy seamlessly to Azure Static Web Apps:
    > - **Local**: Uses `.env.local` file (DEV Supabase)
 
 3. **Custom Domain (Optional)**
-   - Azure Portal → Custom domains
-   - Add your domain (HTTPS automatic via Let's Encrypt)
+   
+   **Current Domain:** https://www.choredomino.com
+   
+   DNS is configured via automated workflow (`.github/workflows/azure-dns-config.yml`):
+   - CNAME: `www.choredomino.com` → Azure Static Web App hostname
+   - Apex redirect: `choredomino.com` → `https://www.choredomino.com` (301)
+   - SSL certificate: Auto-provisioned by Azure (free, auto-renews)
+   - TTL: 10 minutes for fast updates
+   
+   To update DNS manually:
+   ```bash
+   gh workflow run "Configure Azure Custom Domain"
+   ```
 
 **What happens:**
-- Push to `main` → GitHub Actions builds → Auto-deploys
-- Pull requests get staging URLs automatically
+- Push to `main` → GitHub Actions builds → Auto-deploys to production
+- Pull requests get staging URLs automatically (uses DEV Supabase)
 - Global CDN ensures fast load times worldwide
 - Service worker caches app for offline use
 
