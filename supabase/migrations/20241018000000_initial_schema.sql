@@ -346,9 +346,42 @@ CREATE TRIGGER household_members_ensure_creator_admin
 -- ============================================
 -- Enable realtime updates for these tables
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.households;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.household_members;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.households;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.households;
+END $$;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.household_members;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.household_members;
+END $$;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.user_profiles;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.user_profiles;
+END $$;
 
 -- ============================================
 -- COMMENTS (for documentation)

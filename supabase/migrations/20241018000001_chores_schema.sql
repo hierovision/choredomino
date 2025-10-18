@@ -260,8 +260,30 @@ CREATE TRIGGER completion_approval_update_points
 -- REALTIME PUBLICATION
 -- ============================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chores;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chore_completions;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.chores;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.chores;
+END $$;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.chore_completions;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.chore_completions;
+END $$;
 
 -- ============================================
 -- COMMENTS

@@ -332,8 +332,30 @@ CREATE TRIGGER mark_fulfilled
 -- REALTIME PUBLICATION
 -- ============================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.rewards;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.reward_redemptions;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.rewards;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.rewards;
+END $$;
+DO $$
+BEGIN
+  -- Try to remove the table from publication if it exists
+  BEGIN
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.reward_redemptions;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_object THEN NULL;
+  END;
+  -- Add the table to publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.reward_redemptions;
+END $$;
 
 -- ============================================
 -- COMMENTS
