@@ -97,7 +97,29 @@ export default defineConfig({
     port: 3000,
     host: true
   },
-  optimizeDeps: {
-    exclude: ['rxdb']
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate vendor chunks for better caching
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'vuetify-vendor': ['vuetify'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'idb-vendor': ['idb']
+        }
+      },
+      // Exclude test files from production build
+      external: (id) => {
+        return id.includes('/db/tests')
+      }
+    },
+    // Remove console logs in production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
   }
 })

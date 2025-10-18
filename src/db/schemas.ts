@@ -1,7 +1,10 @@
-import { RxJsonSchema } from 'rxdb'
+/**
+ * TypeScript Document Interfaces
+ * These define the shape of documents in IndexedDB and Supabase
+ */
 
 /**
- * Household Schema
+ * Household Document
  * Represents a living space with multiple members
  */
 export interface HouseholdDocument {
@@ -15,11 +18,12 @@ export interface HouseholdDocument {
     currency: string
     pointsPerChore: number
   }
-  modified: number // Syncs to modified in Supabase
-  isDeleted?: boolean // Syncs to deleted in Supabase
+  modified: number
+  isDeleted?: boolean
 }
 
-export const householdSchema: RxJsonSchema<HouseholdDocument> = {
+// Legacy RxDB schema - kept for reference but not used
+export const householdSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -96,7 +100,7 @@ export interface UserDocument {
   isDeleted?: boolean
 }
 
-export const userSchema: RxJsonSchema<UserDocument> = {
+export const userSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -180,7 +184,7 @@ export interface ChoreDocument {
   isDeleted?: boolean
 }
 
-export const choreSchema: RxJsonSchema<ChoreDocument> = {
+export const choreSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -284,7 +288,7 @@ export interface CompletionDocument {
   isDeleted?: boolean
 }
 
-export const completionSchema: RxJsonSchema<CompletionDocument> = {
+export const completionSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -393,7 +397,7 @@ export interface RewardDocument {
   isDeleted?: boolean
 }
 
-export const rewardSchema: RxJsonSchema<RewardDocument> = {
+export const rewardSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -487,7 +491,7 @@ export interface RewardRedemptionDocument {
   isDeleted?: boolean
 }
 
-export const rewardRedemptionSchema: RxJsonSchema<RewardRedemptionDocument> = {
+export const rewardRedemptionSchema = {
   version: 0,
   primaryKey: 'id',
   type: 'object',

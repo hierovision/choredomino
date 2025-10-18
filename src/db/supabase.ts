@@ -7,14 +7,12 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('[Supabase] Environment variables not set. Sync will be disabled.')
-} else {
-  console.log('[Supabase] Configuration:', {
-    url: supabaseUrl,
-    env: import.meta.env.VITE_ENV || 'unknown',
-    mode: import.meta.env.MODE
-  })
+if (import.meta.env.DEV) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('[Supabase] Environment variables not set. Running in local-only mode.')
+  } else {
+    console.log('[Supabase] Connected to:', supabaseUrl.replace('https://', '').split('.')[0])
+  }
 }
 
 let supabaseInstance: SupabaseClient | null = null
@@ -39,7 +37,6 @@ export function getSupabaseClient(): SupabaseClient | null {
         }
       }
     })
-    console.log('[Supabase] Client initialized')
   }
 
   return supabaseInstance

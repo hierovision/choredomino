@@ -1,0 +1,91 @@
+name: Database Migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+          - both
+
+jobs:
+  migrate-dev:
+    name: Migrate DEV Database
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.environment == 'dev' ||
+      github.event.inputs.environment == 'both'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Run migrations on DEV
+        run: |
+          supabase db push \
+            --db-url "${{ secrets.DEV_SUPABASE_DB_URL }}" \
+            --password "${{ secrets.DEV_SUPABASE_DB_PASSWORD }}"
+        
+      - name: Migration summary
+        run: |
+          echo "✅ DEV database migrations completed"
+          echo "📊 Migrations applied:"
+          ls -1 supabase/migrations/
+
+  migrate-prod:
+    name: Migrate PROD Database
+    runs-on: ubuntu-latest
+    needs: migrate-dev
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event.inputs.environment == 'prod' ||
+      github.event.inputs.environment == 'both'
+    
+    environment:
+      name: production
+      url: https://www.choredomino.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Run migrations on PROD
+        run: |
+          supabase db push \
+            --db-url "${{ secrets.PROD_SUPABASE_DB_URL }}" \
+            --password "${{ secrets.PROD_SUPABASE_DB_PASSWORD }}"
+        
+      - name: Migration summary
+        run: |
+          echo "✅ PROD database migrations completed"
+          echo "📊 Migrations applied:"
+          ls -1 supabase/migrations/
+
+      - name: Tag release
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          TAG="migration-$(date +%Y%m%d-%H%M%S)"
+          git tag -a "$TAG" -m "Database migration: $(date)"
+          git push origin "$TAG"

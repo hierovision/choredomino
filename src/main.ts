@@ -18,3 +18,8 @@ app.use(router)
 app.use(vuetify)
 
 app.mount('#app')
+
+// Load sync tests in development mode for manual testing
+if (import.meta.env.DEV) {
+  import('./db/tests')
+}
