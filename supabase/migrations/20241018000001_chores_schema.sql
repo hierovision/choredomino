@@ -123,9 +123,8 @@ ALTER TABLE public.chore_completions ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Members can view chores in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can view household chores"
-  ON public.chores
+DROP POLICY IF EXISTS "Members can view household chores" ON public.chores;
+CREATE POLICY "Members can view household chores" ON public.chores
   FOR SELECT
   USING (
     household_id IN (
@@ -137,9 +136,8 @@ CREATE POLICY "Members can view household chores"
   );
 
 -- Members can create chores in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can create chores"
-  ON public.chores
+DROP POLICY IF EXISTS "Members can create chores" ON public.chores;
+CREATE POLICY "Members can create chores" ON public.chores
   FOR INSERT
   WITH CHECK (
     household_id IN (
@@ -152,9 +150,8 @@ CREATE POLICY "Members can create chores"
   );
 
 -- Members can update chores in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can update chores"
-  ON public.chores
+DROP POLICY IF EXISTS "Members can update chores" ON public.chores;
+CREATE POLICY "Members can update chores" ON public.chores
   FOR UPDATE
   USING (
     household_id IN (
@@ -170,9 +167,8 @@ CREATE POLICY "Members can update chores"
 -- ============================================
 
 -- Members can view completions in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can view completions"
-  ON public.chore_completions
+DROP POLICY IF EXISTS "Members can view completions" ON public.chore_completions;
+CREATE POLICY "Members can view completions" ON public.chore_completions
   FOR SELECT
   USING (
     household_id IN (
@@ -184,9 +180,8 @@ CREATE POLICY "Members can view completions"
   );
 
 -- Members can create completions for chores in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can create completions"
-  ON public.chore_completions
+DROP POLICY IF EXISTS "Members can create completions" ON public.chore_completions;
+CREATE POLICY "Members can create completions" ON public.chore_completions
   FOR INSERT
   WITH CHECK (
     household_id IN (
@@ -200,9 +195,8 @@ CREATE POLICY "Members can create completions"
 
 -- Members can update their own completions if pending
 -- Admins can update any completion (for approval)
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can update completions"
-  ON public.chore_completions
+DROP POLICY IF EXISTS "Members can update completions" ON public.chore_completions;
+CREATE POLICY "Members can update completions" ON public.chore_completions
   FOR UPDATE
   USING (
     household_id IN (

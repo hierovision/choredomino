@@ -168,9 +168,8 @@ ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Users can see households they are members of
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can view their households"
-  ON public.households
+DROP POLICY IF EXISTS "Users can view their households" ON public.households;
+CREATE POLICY "Users can view their households" ON public.households
   FOR SELECT
   TO authenticated
   USING (
@@ -183,17 +182,15 @@ CREATE POLICY "Users can view their households"
   );
 
 -- Users can create new households (automatically become admin)
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can create households"
-  ON public.households
+DROP POLICY IF EXISTS "Users can create households" ON public.households;
+CREATE POLICY "Users can create households" ON public.households
   FOR INSERT
   TO authenticated
   WITH CHECK (created_by = (SELECT auth.uid()));
 
 -- Only household admins can update households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Household admins can update households"
-  ON public.households
+DROP POLICY IF EXISTS "Household admins can update households" ON public.households;
+CREATE POLICY "Household admins can update households" ON public.households
   FOR UPDATE
   TO authenticated
   USING (
@@ -207,9 +204,8 @@ CREATE POLICY "Household admins can update households"
   );
 
 -- Only household admins can soft delete households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Household admins can delete households"
-  ON public.households
+DROP POLICY IF EXISTS "Household admins can delete households" ON public.households;
+CREATE POLICY "Household admins can delete households" ON public.households
   FOR UPDATE
   TO authenticated
   USING (
@@ -227,9 +223,8 @@ CREATE POLICY "Household admins can delete households"
 -- ============================================
 
 -- Members can see other members in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can view household members"
-  ON public.household_members
+DROP POLICY IF EXISTS "Users can view household members" ON public.household_members;
+CREATE POLICY "Users can view household members" ON public.household_members
   FOR SELECT
   TO authenticated
   USING (
@@ -242,9 +237,8 @@ CREATE POLICY "Users can view household members"
   );
 
 -- Admins can add members to their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Admins can add household members"
-  ON public.household_members
+DROP POLICY IF EXISTS "Admins can add household members" ON public.household_members;
+CREATE POLICY "Admins can add household members" ON public.household_members
   FOR INSERT
   TO authenticated
   WITH CHECK (
@@ -258,17 +252,15 @@ CREATE POLICY "Admins can add household members"
   );
 
 -- Users can update their own profile in a household
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can update their own household profile"
-  ON public.household_members
+DROP POLICY IF EXISTS "Users can update their own household profile" ON public.household_members;
+CREATE POLICY "Users can update their own household profile" ON public.household_members
   FOR UPDATE
   TO authenticated
   USING (user_id = (SELECT auth.uid()));
 
 -- Admins can update any member in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Admins can update household members"
-  ON public.household_members
+DROP POLICY IF EXISTS "Admins can update household members" ON public.household_members;
+CREATE POLICY "Admins can update household members" ON public.household_members
   FOR UPDATE
   TO authenticated
   USING (
@@ -286,25 +278,22 @@ CREATE POLICY "Admins can update household members"
 -- ============================================
 
 -- Users can view their own profile
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can view own profile"
-  ON public.user_profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
+CREATE POLICY "Users can view own profile" ON public.user_profiles
   FOR SELECT
   TO authenticated
   USING (id = (SELECT auth.uid()));
 
 -- Users can update their own profile
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can update own profile"
-  ON public.user_profiles
+DROP POLICY IF EXISTS "Users can update own profile" ON public.user_profiles;
+CREATE POLICY "Users can update own profile" ON public.user_profiles
   FOR UPDATE
   TO authenticated
   USING (id = (SELECT auth.uid()));
 
 -- Users can insert their own profile
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Users can insert own profile"
-  ON public.user_profiles
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
+CREATE POLICY "Users can insert own profile" ON public.user_profiles
   FOR INSERT
   TO authenticated
   WITH CHECK (id = (SELECT auth.uid()));

@@ -115,9 +115,8 @@ ALTER TABLE public.reward_redemptions ENABLE ROW LEVEL SECURITY;
 -- ============================================
 
 -- Members can view rewards in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can view household rewards"
-  ON public.rewards
+DROP POLICY IF EXISTS "Members can view household rewards" ON public.rewards;
+CREATE POLICY "Members can view household rewards" ON public.rewards
   FOR SELECT
   USING (
     household_id IN (
@@ -129,9 +128,8 @@ CREATE POLICY "Members can view household rewards"
   );
 
 -- Admins can create rewards
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Admins can create rewards"
-  ON public.rewards
+DROP POLICY IF EXISTS "Admins can create rewards" ON public.rewards;
+CREATE POLICY "Admins can create rewards" ON public.rewards
   FOR INSERT
   WITH CHECK (
     household_id IN (
@@ -145,9 +143,8 @@ CREATE POLICY "Admins can create rewards"
   );
 
 -- Admins can update rewards
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Admins can update rewards"
-  ON public.rewards
+DROP POLICY IF EXISTS "Admins can update rewards" ON public.rewards;
+CREATE POLICY "Admins can update rewards" ON public.rewards
   FOR UPDATE
   USING (
     household_id IN (
@@ -164,9 +161,8 @@ CREATE POLICY "Admins can update rewards"
 -- ============================================
 
 -- Members can view redemptions in their households
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can view redemptions"
-  ON public.reward_redemptions
+DROP POLICY IF EXISTS "Members can view redemptions" ON public.reward_redemptions;
+CREATE POLICY "Members can view redemptions" ON public.reward_redemptions
   FOR SELECT
   USING (
     household_id IN (
@@ -178,9 +174,8 @@ CREATE POLICY "Members can view redemptions"
   );
 
 -- Members can redeem rewards
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can redeem rewards"
-  ON public.reward_redemptions
+DROP POLICY IF EXISTS "Members can redeem rewards" ON public.reward_redemptions;
+CREATE POLICY "Members can redeem rewards" ON public.reward_redemptions
   FOR INSERT
   WITH CHECK (
     household_id IN (
@@ -194,9 +189,8 @@ CREATE POLICY "Members can redeem rewards"
 
 -- Admins can update redemptions (for fulfillment)
 -- Users can cancel their own pending redemptions
-DROP POLICY IF EXISTS "" ON ;
-CREATE POLICY "Members can update redemptions"
-  ON public.reward_redemptions
+DROP POLICY IF EXISTS "Members can update redemptions" ON public.reward_redemptions;
+CREATE POLICY "Members can update redemptions" ON public.reward_redemptions
   FOR UPDATE
   USING (
     household_id IN (
