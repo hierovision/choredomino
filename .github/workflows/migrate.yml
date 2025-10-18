@@ -86,12 +86,3 @@ jobs:
           echo "✅ PROD database migrations completed"
           echo "📊 Migrations applied:"
           ls -1 supabase/migrations/
-
-      - name: Tag release
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          TAG="migration-$(date +%Y%m%d-%H%M%S)"
-          git tag -a "$TAG" -m "Database migration: $(date)"
-          git push origin "$TAG"
