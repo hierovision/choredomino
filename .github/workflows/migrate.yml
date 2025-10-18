@@ -38,8 +38,7 @@ jobs:
       - name: Run migrations on DEV
         run: |
           supabase db push \
-            --db-url "${{ secrets.DEV_SUPABASE_DB_URL }}" \
-            --password "${{ secrets.DEV_SUPABASE_DB_PASSWORD }}"
+            --db-url "${{ secrets.DEV_SUPABASE_DB_URL }}"
         
       - name: Migration summary
         run: |
@@ -72,8 +71,7 @@ jobs:
       - name: Run migrations on PROD
         run: |
           supabase db push \
-            --db-url "${{ secrets.PROD_SUPABASE_DB_URL }}" \
-            --password "${{ secrets.PROD_SUPABASE_DB_PASSWORD }}"
+            --db-url "${{ secrets.PROD_SUPABASE_DB_URL }}"
         
       - name: Migration summary
         run: |
