@@ -9,6 +9,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[Supabase] Environment variables not set. Sync will be disabled.')
+} else {
+  console.log('[Supabase] Configuration:', {
+    url: supabaseUrl,
+    env: import.meta.env.VITE_ENV || 'unknown',
+    mode: import.meta.env.MODE
+  })
 }
 
 let supabaseInstance: SupabaseClient | null = null
