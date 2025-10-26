@@ -29,6 +29,8 @@ export type CollectionName =
   | 'completions'
   | 'rewards'
   | 'reward_redemptions'
+  | 'point_adjustments'
+  | 'notification_preferences'
 
 /**
  * Insert a document into a collection

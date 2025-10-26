@@ -4,6 +4,26 @@
  */
 
 /**
+ * Management mode for chores and rewards
+ */
+export type ManagementMode = 'admin_control' | 'collaborative' | 'full_access'
+
+/**
+ * Chore lifecycle workflow types
+ */
+export type ChoreLifecycle = 'simple' | 'approval_required' | 'full_workflow'
+
+/**
+ * Completion status for chore workflow
+ */
+export type CompletionStatus = 'pending' | 'in_progress' | 'completed' | 'approved' | 'rejected'
+
+/**
+ * Redemption status for reward workflow
+ */
+export type RedemptionStatus = 'requested' | 'approved' | 'denied' | 'redeemed' | 'fulfilled' | 'cancelled'
+
+/**
  * Household Document
  * Represents a living space with multiple members
  */
@@ -13,6 +33,13 @@ export interface HouseholdDocument {
   createdAt: number
   updatedAt: number
   createdBy: string
+  
+  // Configuration fields
+  choreManagementMode: ManagementMode
+  rewardManagementMode: ManagementMode
+  defaultChoreLifecycle: ChoreLifecycle
+  allowAssignmentAcceptance: boolean
+  
   settings: {
     timezone: string
     currency: string
@@ -92,7 +119,7 @@ export interface UserDocument {
   name: string
   email?: string
   avatarUrl?: string
-  role: 'admin' | 'member' | 'child'
+  role: 'admin' | 'member' // Removed 'child' per requirements
   points: number
   createdAt: number
   updatedAt: number
@@ -171,11 +198,20 @@ export interface ChoreDocument {
   householdId: string
   name: string
   description?: string
-  points: number
+  points?: number | null // Nullable for unpaid chores
   frequency: 'once' | 'daily' | 'weekly' | 'monthly'
+  recurrenceRule?: string | null // iCalendar RRULE format
+  lifecycleOverride?: ChoreLifecycle | null // Override household default
   assignedTo?: string
+  assignmentStatus?: 'assigned' | 'pending_acceptance' | 'accepted' | 'rejected'
+  directRewardId?: string | null // FK to rewards for direct reward
   category?: string
   dueDate?: number
+  overdueConfig?: {
+    notifyAssignee?: boolean
+    notifyAdminsAfterDays?: number | null
+    consequence?: 'none' | 'negative_points' | 'break_streak'
+  }
   isActive: boolean
   createdAt: number
   updatedAt: number
@@ -275,13 +311,13 @@ export interface CompletionDocument {
   householdId: string
   completedBy: string
   completedAt: number
-  status: 'pending' | 'approved' | 'rejected'
+  status: CompletionStatus // Updated to support in_progress state
   approvedBy?: string
   approvedAt?: number
   rejectionReason?: string
   notes?: string
   photoUrl?: string
-  pointsAwarded: number
+  pointsAwarded?: number | null // Nullable for unpaid chores
   createdAt: number
   updatedAt: number
   modified: number
@@ -385,7 +421,11 @@ export interface RewardDocument {
   householdId: string
   name: string
   description?: string
-  pointsCost: number
+  pointsCost?: number | null // Nullable for free or direct rewards
+  quantityAvailable?: number | null // Null = unlimited
+  quantityPerMember?: number | null // Null = no individual limit
+  expiresAt?: number | null // Null = never expires
+  requiresApproval: boolean
   isActive: boolean
   isShared: boolean // true for family rewards, false for individual
   category?: string
@@ -480,10 +520,12 @@ export interface RewardRedemptionDocument {
   householdId: string
   redeemedBy: string
   redeemedAt: number
-  status: 'pending' | 'fulfilled' | 'cancelled'
+  status: RedemptionStatus // Updated to support approval workflow
+  approvedBy?: string // Admin who approved/denied
+  approvedAt?: number
   fulfilledBy?: string
   fulfilledAt?: number
-  pointsSpent: number
+  pointsSpent?: number | null // Nullable for direct rewards
   notes?: string
   createdAt: number
   updatedAt: number
@@ -569,4 +611,50 @@ export const rewardRedemptionSchema = {
   },
   required: ['id', 'rewardId', 'householdId', 'redeemedBy', 'redeemedAt', 'status', 'pointsSpent', 'createdAt', 'updatedAt', 'modified'],
   indexes: ['householdId', 'redeemedBy', 'status', 'updatedAt', 'modified', ['householdId', 'status']]
+}
+
+/**
+ * Point Adjustment Schema
+ * Audit trail for manual point changes
+ */
+export interface PointAdjustmentDocument {
+  id: string
+  householdId: string
+  userId: string
+  amount: number // Can be positive or negative
+  reason: string
+  adjustedBy: string // Admin who made the adjustment
+  sourceType?: string // 'manual', 'chore_completion', 'reward_redemption', etc.
+  sourceId?: string // ID of related entity
+  createdAt: number
+  modified: number
+  isDeleted?: boolean
+}
+
+/**
+ * Notification Preference Schema
+ * User notification settings per channel and event type
+ */
+export interface NotificationPreferenceDocument {
+  id: string
+  userId: string
+  householdId?: string | null // Null for global preferences
+  pushEnabled: boolean
+  emailEnabled: boolean
+  eventPreferences: {
+    choreAssigned?: boolean
+    choreCompleted?: boolean
+    choreApproved?: boolean
+    choreRejected?: boolean
+    choreOverdue?: boolean
+    rewardRedeemed?: boolean
+    rewardRequested?: boolean
+    rewardApproved?: boolean
+    rewardDenied?: boolean
+    rewardFulfilled?: boolean
+  }
+  createdAt: number
+  updatedAt: number
+  modified: number
+  isDeleted?: boolean
 }

@@ -11,7 +11,9 @@ import type {
   ChoreDocument,
   CompletionDocument,
   RewardDocument,
-  RewardRedemptionDocument
+  RewardRedemptionDocument,
+  PointAdjustmentDocument,
+  NotificationPreferenceDocument
 } from './schemas'
 
 /**
@@ -87,6 +89,26 @@ interface ChoreDBSchema extends DBSchema {
       'by-householdId-status': [string, string]
     }
   }
+  point_adjustments: {
+    key: string
+    value: PointAdjustmentDocument
+    indexes: {
+      'by-householdId': string
+      'by-userId': string
+      'by-adjustedBy': string
+      'by-createdAt': number
+      'by-modified': number
+    }
+  }
+  notification_preferences: {
+    key: string
+    value: NotificationPreferenceDocument
+    indexes: {
+      'by-userId': string
+      'by-householdId': string
+      'by-modified': number
+    }
+  }
   // Sync metadata store for tracking last sync timestamps
   _sync_meta: {
     key: string // collection name
@@ -99,7 +121,7 @@ interface ChoreDBSchema extends DBSchema {
 }
 
 const DB_NAME = 'choredomino'
-const DB_VERSION = 1
+const DB_VERSION = 2 // Bumped for new schema changes
 
 let dbInstance: IDBPDatabase<ChoreDBSchema> | null = null
 
@@ -117,34 +139,36 @@ export async function initIndexedDB(): Promise<IDBPDatabase<ChoreDBSchema>> {
         console.log(`[IndexedDB] Upgrading from version ${oldVersion} to ${newVersion}`)
       }
 
-      // Create households store
-      if (!db.objectStoreNames.contains('households')) {
-        const householdsStore = db.createObjectStore('households', { keyPath: 'id' })
-        householdsStore.createIndex('by-updatedAt', 'updatedAt')
-        householdsStore.createIndex('by-createdBy', 'createdBy')
-        householdsStore.createIndex('by-modified', 'modified')
-      }
+      // Version 1: Initial schema
+      if (oldVersion < 1) {
+        // Create households store
+        if (!db.objectStoreNames.contains('households')) {
+          const householdsStore = db.createObjectStore('households', { keyPath: 'id' })
+          householdsStore.createIndex('by-updatedAt', 'updatedAt')
+          householdsStore.createIndex('by-createdBy', 'createdBy')
+          householdsStore.createIndex('by-modified', 'modified')
+        }
 
-      // Create users store
-      if (!db.objectStoreNames.contains('users')) {
-        const usersStore = db.createObjectStore('users', { keyPath: 'id' })
-        usersStore.createIndex('by-householdId', 'householdId')
-        usersStore.createIndex('by-updatedAt', 'updatedAt')
-        usersStore.createIndex('by-modified', 'modified')
-        usersStore.createIndex('by-householdId-role', ['householdId', 'role'])
-      }
+        // Create users store
+        if (!db.objectStoreNames.contains('users')) {
+          const usersStore = db.createObjectStore('users', { keyPath: 'id' })
+          usersStore.createIndex('by-householdId', 'householdId')
+          usersStore.createIndex('by-updatedAt', 'updatedAt')
+          usersStore.createIndex('by-modified', 'modified')
+          usersStore.createIndex('by-householdId-role', ['householdId', 'role'])
+        }
 
-      // Create chores store
-      if (!db.objectStoreNames.contains('chores')) {
-        const choresStore = db.createObjectStore('chores', { keyPath: 'id' })
-        choresStore.createIndex('by-householdId', 'householdId')
-        choresStore.createIndex('by-updatedAt', 'updatedAt')
-        choresStore.createIndex('by-assignedTo', 'assignedTo')
-        choresStore.createIndex('by-isActive', 'isActive')
-        choresStore.createIndex('by-modified', 'modified')
-        choresStore.createIndex('by-householdId-isActive', ['householdId', 'isActive'])
-        choresStore.createIndex('by-householdId-assignedTo', ['householdId', 'assignedTo'])
-      }
+        // Create chores store
+        if (!db.objectStoreNames.contains('chores')) {
+          const choresStore = db.createObjectStore('chores', { keyPath: 'id' })
+          choresStore.createIndex('by-householdId', 'householdId')
+          choresStore.createIndex('by-updatedAt', 'updatedAt')
+          choresStore.createIndex('by-assignedTo', 'assignedTo')
+          choresStore.createIndex('by-isActive', 'isActive')
+          choresStore.createIndex('by-modified', 'modified')
+          choresStore.createIndex('by-householdId-isActive', ['householdId', 'isActive'])
+          choresStore.createIndex('by-householdId-assignedTo', ['householdId', 'assignedTo'])
+        }
 
       // Create completions store
       if (!db.objectStoreNames.contains('completions')) {
@@ -183,6 +207,32 @@ export async function initIndexedDB(): Promise<IDBPDatabase<ChoreDBSchema>> {
       // Create sync metadata store
       if (!db.objectStoreNames.contains('_sync_meta')) {
         db.createObjectStore('_sync_meta', { keyPath: 'collection' })
+      }
+      }
+
+      // Version 2: Add new stores for requirements
+      if (oldVersion < 2) {
+        if (import.meta.env.DEV) {
+          console.log('[IndexedDB] Applying v2 migration: Adding point_adjustments and notification_preferences')
+        }
+
+        // Create point_adjustments store
+        if (!db.objectStoreNames.contains('point_adjustments')) {
+          const adjustmentsStore = db.createObjectStore('point_adjustments', { keyPath: 'id' })
+          adjustmentsStore.createIndex('by-householdId', 'householdId')
+          adjustmentsStore.createIndex('by-userId', 'userId')
+          adjustmentsStore.createIndex('by-adjustedBy', 'adjustedBy')
+          adjustmentsStore.createIndex('by-createdAt', 'createdAt')
+          adjustmentsStore.createIndex('by-modified', 'modified')
+        }
+
+        // Create notification_preferences store
+        if (!db.objectStoreNames.contains('notification_preferences')) {
+          const prefsStore = db.createObjectStore('notification_preferences', { keyPath: 'id' })
+          prefsStore.createIndex('by-userId', 'userId')
+          prefsStore.createIndex('by-householdId', 'householdId')
+          prefsStore.createIndex('by-modified', 'modified')
+        }
       }
     }
   })

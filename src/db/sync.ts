@@ -303,7 +303,9 @@ export async function startAllSync(): Promise<void> {
     'chores',
     'completions',
     'rewards',
-    'reward_redemptions'
+    'reward_redemptions',
+    'point_adjustments',
+    'notification_preferences'
   ]
 
   // Start syncing each collection in parallel
