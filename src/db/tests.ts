@@ -33,6 +33,10 @@ export async function testPersistence() {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     createdBy: 'test-user',
+    choreManagementMode: 'collaborative',
+    rewardManagementMode: 'collaborative',
+    defaultChoreLifecycle: 'simple',
+    allowAssignmentAcceptance: false,
     settings: {
       timezone: 'America/New_York',
       currency: 'USD',
@@ -242,6 +246,10 @@ export async function testOfflineMode() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       createdBy: 'test',
+      choreManagementMode: 'collaborative',
+      rewardManagementMode: 'collaborative',
+      defaultChoreLifecycle: 'simple',
+      allowAssignmentAcceptance: false,
       settings: {
         timezone: 'UTC',
         currency: 'USD',
@@ -305,6 +313,10 @@ export async function testMultiTabWrite() {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     createdBy: 'multi-tab',
+    choreManagementMode: 'collaborative',
+    rewardManagementMode: 'collaborative',
+    defaultChoreLifecycle: 'simple',
+    allowAssignmentAcceptance: false,
     settings: {
       timezone: 'UTC',
       currency: 'USD',
